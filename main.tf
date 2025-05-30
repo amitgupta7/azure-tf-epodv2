@@ -103,10 +103,16 @@ resource "azurerm_kubernetes_cluster" "aks" {
   dns_prefix          = var.az_name_prefix
   private_cluster_public_fqdn_enabled = true
 
+
   default_node_pool {
     name                = "system"
     node_count          = var.min_node_count
     vm_size             = var.node_vm_size
+    linux_os_config {
+      sysctl_config{
+        vm_max_map_count = 262144
+      }
+    }
   }
 
     network_profile {
@@ -181,6 +187,28 @@ resource "null_resource" "post_provisioning" {
      ]
   }
 }
+
+resource "null_resource" "remove_pod" {
+    triggers = {
+    user     = var.azuser
+    password = var.azpwd
+    host     = azurerm_public_ip.pod_ip.fqdn
+    X_API_Key  = var.X_API_Key
+    X_API_Secret = var.X_API_Secret
+    X_TIDENT = var.X_TIDENT
+  }
+  connection {
+    type     = "ssh"
+    user     = self.triggers.user
+    password = self.triggers.password
+    host = self.triggers.host
+  }
+  provisioner "remote-exec" {
+    when = destroy
+    inline = ["curl -s -X 'DELETE' \"https://app.securiti.ai/core/v1/admin/appliance/$(cat /home/${self.triggers.user}/localfiles/appliance.json| jq -r '.data.id')\" -H 'accept: application/json' -H 'X-API-Secret:  ${self.triggers.X_API_Secret}' -H 'X-API-Key:  ${self.triggers.X_API_Key}' -H 'X-TIDENT:  ${self.triggers.X_TIDENT}' | jq" ]
+  }
+}
+
 output "ssh_credentials" {
   value = "ssh ${var.azuser}@${azurerm_public_ip.pod_ip.fqdn} \nwith password: ${var.azpwd}"
 }
