@@ -35,7 +35,6 @@ variable "os_version" {
 
 variable "azpwd" {
   description = "common vm password, 16 characters containg --> [chars-alpha-num-special-char]"
-  default = "1qaz!QAZ1qaz!QAZ"
 }
 
 variable "client_ip" {
@@ -60,11 +59,11 @@ variable "az_name_prefix" {
 }
 
 variable "node_vm_size" {
-  default = "Standard_D4_v2"
+  default = "Standard_D16as_v4"
 }
 
 variable "min_node_count" {
-  default     = "2"
+  default     = "1"
   description = "AKS min nodes"
 }
 

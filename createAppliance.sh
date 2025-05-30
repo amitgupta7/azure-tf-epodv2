@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 while getopts k:s:t:o:n: flag
 do
     case "${flag}" in
@@ -65,12 +66,19 @@ cd localfiles
   -H 'X-TIDENT:  '${xtenant} \
   | jq -r '.data' | base64 --decode > values.yaml
 
-    curl -s -X GET https://app.securiti.ai/core/v1/admin/appliance/${appliance_id}/install_command \
+  curl -s -X GET https://app.securiti.ai/core/v1/admin/appliance/${appliance_id}/install_command \
   -H 'accept: application/json' \
   -H 'X-API-Secret:  '${xsecret} \
   -H 'X-API-Key:  '${xkey} \
   -H 'X-TIDENT:  '${xtenant} \
   | jq -r '.data' > install.sh
+
+  curl -s -X GET https://app.securiti.ai/core/v1/admin/appliance/${appliance_id}/register_command \
+  -H 'accept: application/json' \
+  -H 'X-API-Secret:  '${xsecret} \
+  -H 'X-API-Key:  '${xkey} \
+  -H 'X-TIDENT:  '${xtenant} \
+  | jq -r '.data' > register.sh
 
   curl -s -X GET https://app.securiti.ai/core/v1/admin/appliance/${appliance_id}/appliance_auth \
   -H 'accept: application/json' \
