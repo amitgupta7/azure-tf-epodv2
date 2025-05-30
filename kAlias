@@ -1,0 +1,9 @@
+function kubectl() { echo "+ kubectl $@">&2; command kubectl $@; }
+alias k='kubectl'
+alias kx='kubectl exec -it'
+alias kg='kubectl get'
+alias kgp='kubectl get pod' 
+alias kd='kubectl describe'
+alias kga='kubectl get all -A'
+alias kex='kubectl exec -it'
+alias ked='kubectl edit'
