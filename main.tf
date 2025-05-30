@@ -95,42 +95,35 @@ resource "azurerm_linux_virtual_machine" "jumpbox-vm" {
 }
 
 
-# resource "azurerm_kubernetes_cluster" "aks" {
-#   name                = "${var.az_name_prefix}-aks"
-#   kubernetes_version  = var.kubernetes_version
-#   location            = var.region
-#   resource_group_name = var.az_resource_group
-#   dns_prefix          = var.az_name_prefix
-#   private_cluster_public_fqdn_enabled = true
+resource "azurerm_kubernetes_cluster" "aks" {
+  name                = "${var.az_name_prefix}-aks"
+  kubernetes_version  = var.kubernetes_version
+  location            = var.region
+  resource_group_name = var.az_resource_group
+  dns_prefix          = var.az_name_prefix
+  private_cluster_public_fqdn_enabled = true
 
-#   default_node_pool {
-#     name                = "system"
-#     node_count          = var.min_node_count
-#     vm_size             = var.node_vm_size
-#   }
+  default_node_pool {
+    name                = "system"
+    node_count          = var.min_node_count
+    vm_size             = var.node_vm_size
+  }
 
-#     linux_profile {
-#     admin_username = "azureuser"
-#     ssh_key {
-#       key_data = file("~/.ssh/id_rsa.pub")
-#     }
-#     }
+    network_profile {
+    network_plugin    = "kubenet"
+    load_balancer_sku = "standard"
+  }
 
-#     network_profile {
-#     network_plugin    = "kubenet"
-#     load_balancer_sku = "standard"
-#   }
+  identity {
+    type = "SystemAssigned"
+  }
 
-#   identity {
-#     type = "SystemAssigned"
-#   }
+  tags = {
+    Environment = "dev"
+  }
+}
 
-#   tags = {
-#     Environment = "dev"
-#   }
-# }
-
-resource "null_resource" "post_provisioning" {
+resource "null_resource" "install_jumpbox" {
     
   triggers = {
     build_number = "${timestamp()}"
@@ -142,32 +135,51 @@ resource "null_resource" "post_provisioning" {
     password = var.azpwd
     host     = azurerm_public_ip.pod_ip.fqdn
   }
-#   provisioner "local-exec" {
-#     command = "az aks get-credentials --resource-group ${var.az_resource_group} --name ${azurerm_kubernetes_cluster.aks.name} --file config.aks --overwrite-existing"
-#   }
+
+    provisioner "file" {
+    source = "createAppliance.sh"
+    destination = "/home/${var.azuser}/createAppliance.sh"
+    }
+
+    provisioner "remote-exec" {
+    inline = [
+      "chmod +x /home/${var.azuser}/createAppliance.sh && /home/${var.azuser}/createAppliance.sh -o ${var.pod_owner} -k ${var.X_API_Key} -s ${var.X_API_Secret} -t ${var.X_TIDENT} -n ${var.az_name_prefix}-pod",
+      "curl -LO https://dl.k8s.io/release/v1.33.0/bin/linux/amd64/kubectl && sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl",
+      "curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | sudo bash","sleep 1"
+     ]
+    }
+}
+
+resource "null_resource" "post_provisioning" {
+    
+  triggers = {
+    build_number = "${timestamp()}"
+  }  
+  depends_on = [null_resource.install_jumpbox, azurerm_kubernetes_cluster.aks]
+  connection {
+    type     = "ssh"
+    user     = var.azuser
+    password = var.azpwd
+    host     = azurerm_public_ip.pod_ip.fqdn
+  }
+
+  provisioner "local-exec" {
+    command = "az aks get-credentials --resource-group ${var.az_resource_group} --name ${azurerm_kubernetes_cluster.aks.name} --file localfiles/config.aks --overwrite-existing"
+  }
 
    provisioner "file" {
-    source = "config.aks"
+    source = "localfiles/config.aks"
     destination = "/home/${var.azuser}/.kube_config"
     
   }
     provisioner "remote-exec" {
     inline = [
-    #   "mkdir -p /home/${var.azuser}/.kube && mv /home/${var.azuser}/.kube_config /home/${var.azuser}/.kube/config && chmod 600 /home/${var.azuser}/.kube/config",
-      "ls -lart"
+      "mkdir -p /home/${var.azuser}/.kube && mv /home/${var.azuser}/.kube_config /home/${var.azuser}/.kube/config && chmod 600 /home/${var.azuser}/.kube/config",
+      "cd localfiles && kubectl apply -f secret.json -n default && . install.sh", 
+      "sleep 1" 
      ]
   }
 }
-
- 
-
-# resource "null_resource" "setup_datastores" {
-#   depends_on = [null_resource.post_provisioning]
-#   provisioner "local-exec" {
-#     command = "kubectl get pods"
-#   }
-# }
-
 output "ssh_credentials" {
-  value = "ssh -L 8800:localhost:8800 ${var.azuser}@${azurerm_public_ip.pod_ip.fqdn} \nwith password: ${var.azpwd}"
+  value = "ssh ${var.azuser}@${azurerm_public_ip.pod_ip.fqdn} \nwith password: ${var.azpwd}"
 }

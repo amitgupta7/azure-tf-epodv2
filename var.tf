@@ -18,15 +18,15 @@ variable "os_disk_size_in_gb" {
 
 
 variable "os_publisher" {
-  default = "RedHat"
+  default = "Canonical"
 }
 
 variable "os_offer" {
-  default = "RHEL"
+  default = "ubuntu-24_04-lts"
 }
 
 variable "os_sku" {
-  default = "8_5"
+  default = "server"
 }
 
 variable "os_version" {
