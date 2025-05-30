@@ -176,7 +176,7 @@ resource "null_resource" "post_provisioning" {
     inline = [
       "mkdir -p /home/${var.azuser}/.kube && mv /home/${var.azuser}/.kube_config /home/${var.azuser}/.kube/config && chmod 600 /home/${var.azuser}/.kube/config",
       "cd localfiles && kubectl apply -f secret.json -n default && cat install.sh | bash", 
-      "cd localfiles && cat register.sh | bash",
+      "cat /home/${var.azuser}/localfiles/register.sh | bash",
       "sleep 1" 
      ]
   }
