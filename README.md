@@ -1,5 +1,7 @@
 # azure-tf-epodv2
-This repo provides an example to create the necessary azure infrastructure for deployment of epods v2 on azure kubernetes service (aks). This is presently a wip and not complete. Provided as-is, only for demo/training purposes.
+This repo provides an example to create the necessary azure infrastructure for deployment of epods v2 on azure kubernetes service (aks). This feature (SAI epods v2 BYOK) is presently a wip (and features like auto-update and external statefulsets are in pipeline) and require support to enable epodsv2 on the SAI tenant from BOP. Provided as-is, only for demo/training purposes.
+
+This script will setup an aks instance and a jumpbox-vm to connect to the aks using kubectl. It will then use the SAI APIs to create an epodv2 appliance, and download the helm charts, overrides.yaml and repository secret needed for the installation. See epodv2 documentation [here](https://docs.securiti.ai/modules/appliances/en/securiti-pods-and-elastic-pods/elastic-pod-v2-private-preview.html). 
 
 ## Prerequisites
 The script needs terraform and azure cli to run. These can be installed using a packet manager like apt (linux) or using homebrew (mac). We will create a jumpbox machine on azure first to download the helm charts and perform the install on aks. 
